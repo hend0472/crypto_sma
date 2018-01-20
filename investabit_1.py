@@ -4,12 +4,14 @@ import numpy as np
 from print_t import *
 import sys
 
-
+# Default file location is not set to manual
 file_location = r'ohlc_2017-10-01_2017-10-31.csv'
+
 # THE DIFFERENT PERIODS OF SMAS WE ARE GOING TO CHECK AGAINST
 smas = [5, 10, 20, 50, 100, 200]
 min_percent = 1
 max_percent = 9
+
 # A DICTIONARY TO STORE THE RESULTS OF EACH SIMULATION
 results = {}
 
@@ -82,8 +84,11 @@ def auto_trade(dataframe, short_sma_period, long_sma_period, percentage):
 		# FIRST WE WILL CHECK IF WE HAVE SOMETHING TO SELL
 		if dataframe.iloc[index]['sell_price'] > 0.0:
 			if dataframe.iloc[index]['weighted_price'] >= dataframe.iloc[index]['sell_price']:
-				new_fiat = dataframe.iloc[index]['sell_price'] * dataframe.iloc[index]['holdings'] + dataframe.iloc[index]['fiat']
-				print_t(str(dataframe.iloc[index]['timestamp']) + ' [-] SELLING ' + str(dataframe.iloc[index]['holdings']) + ' @ ' + str(dataframe.iloc[index]['sell_price']) + ' FOR ' + str(new_fiat), 'pass')
+				new_fiat = dataframe.iloc[index]['sell_price'] * dataframe.iloc[index]['holdings']\
+						   + dataframe.iloc[index]['fiat']
+				print_t(str(dataframe.iloc[index]['timestamp']) + ' [-] SELLING ' +
+						str(dataframe.iloc[index]['holdings']) + ' @ ' + str(dataframe.iloc[index]['sell_price']) +
+						' FOR ' + str(new_fiat), 'pass')
 				dataframe.set_value(next_index, 'holdings', 0)
 				dataframe.set_value(next_index, 'fiat', new_fiat)
 				dataframe.set_value(next_index, 'sell_price', np.nan)
@@ -116,7 +121,8 @@ def auto_trade(dataframe, short_sma_period, long_sma_period, percentage):
 					available_volume = dataframe.iloc[index]['volume']
 					if new_holdings > available_volume:
 						print_t('SHORTAGE OF VOLUME, BUYING LESSER AMOUNT', 'FAIL')
-						print_t(str(dataframe.iloc[index]['timestamp']) + ' [+] BUYING ' + str(available_volume) + ' @ ' + str(dataframe.iloc[index]['weighted_price'])
+						print_t(str(dataframe.iloc[index]['timestamp']) + ' [+] BUYING ' + str(available_volume)
+								+ ' @ ' + str(dataframe.iloc[index]['weighted_price'])
 								+ ' TO SELL @ ' + str(sell_price), 'pass')
 						remaining_fiat = dataframe.iloc[index]['fiat'] - \
 										 (available_volume * dataframe.iloc[index]['weighted_price'])
@@ -124,7 +130,9 @@ def auto_trade(dataframe, short_sma_period, long_sma_period, percentage):
 						dataframe.set_value(next_index, 'sell_price', sell_price)
 						dataframe.set_value(next_index, 'fiat', remaining_fiat)
 					elif new_holdings <= available_volume:
-						print_t(str(dataframe.iloc[index]['timestamp']) + ' [+] BUYING ' + str(new_holdings) + ' @ ' + str(dataframe.iloc[index]['weighted_price']) + ' TO SELL @ ' + str(sell_price), 'pass')
+						print_t(str(dataframe.iloc[index]['timestamp']) + ' [+] BUYING ' + str(new_holdings) + ' @ '
+								+ str(dataframe.iloc[index]['weighted_price']) +
+								' TO SELL @ ' + str(sell_price), 'pass')
 						dataframe.set_value(next_index, 'holdings', new_holdings)
 						dataframe.set_value(next_index, 'fiat', new_fiat)
 						dataframe.set_value(next_index, 'sell_price', sell_price)
@@ -139,14 +147,12 @@ def auto_trade(dataframe, short_sma_period, long_sma_period, percentage):
 			dataframe.set_value(next_index, 'fiat', dataframe.iloc[index]['fiat'])
 			dataframe.set_value(next_index, 'sell_price', dataframe.iloc[index]['sell_price'])
 
-	# finally sell any remaining crypto to measure performance
-	# this is set to sell at the price we had planned to sell at and not the current price
-	# so really it's unrealized profits, if you change sell_price to weighted_price on line 108 it will switch
+	# Finally sell any remaining crypto to measure performance
+	# Real world you wouldn't sell but it would wait until it's sell price was reached
 	df_length = dataframe.shape[0] - 1
 	if dataframe.iloc[df_length]['holdings'] != 0.0:
-		holdings = dataframe.iloc[df_length]['holdings']
-		weighted_price = dataframe.iloc[df_length - 1]['weighted_price']
-		new_fiat = (dataframe.iloc[df_length]['holdings'] * dataframe.iloc[(df_length - 1)]['weighted_price']) + dataframe.iloc[(df_length)]['fiat']
+		new_fiat = (dataframe.iloc[df_length]['holdings'] * dataframe.iloc[(df_length - 1)]['weighted_price']) \
+				   + dataframe.iloc[(df_length)]['fiat']
 		dataframe.set_value(df_length, 'holdings', 0)
 		dataframe.set_value(df_length, 'fiat', new_fiat)
 		print_t('UNCLOSED CRYPTO AT END. ASSUMING SELLING AT MARKET PRICE.', 'fail')
@@ -158,7 +164,7 @@ def auto_trade(dataframe, short_sma_period, long_sma_period, percentage):
 		status = 'hard fail'
 	print_t('FINAL PORTFOLIO VALUE: ' + str(final_value), status)
 
-	# adding a running account value column
+	# Adding a running account value column
 	dataframe['acount_value'] = np.nan
 	for index, row in dataframe.iterrows():
 		fiat = dataframe.iloc[index]['fiat']
